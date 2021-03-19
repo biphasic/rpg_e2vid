@@ -9,7 +9,9 @@ from utils.timers import Timer
 import time
 from image_reconstructor import ImageReconstructor
 from options.inference_options import set_inference_options
-
+import tonic
+import tonic.transforms as transforms
+import ipdb
 
 if __name__ == "__main__":
 
@@ -42,7 +44,8 @@ if __name__ == "__main__":
     header = pd.read_csv(path_to_events, delim_whitespace=True, header=None, names=['width', 'height'],
                          dtype={'width': np.int, 'height': np.int},
                          nrows=1)
-    width, height = header.values[0]
+    
+    width, height = 304,240 #header.values[0]
     print('Sensor size: {} x {}'.format(width, height))
 
     # Load model
@@ -80,15 +83,30 @@ if __name__ == "__main__":
     if args.compute_voxel_grid_on_cpu:
         print('Will compute voxel grid on CPU.')
 
-    if args.fixed_duration:
-        event_window_iterator = FixedDurationEventReader(path_to_events,
-                                                         duration_ms=args.window_duration,
-                                                         start_index=start_index)
-    else:
-        event_window_iterator = FixedSizeEventReader(path_to_events, num_events=N, start_index=start_index)
+#     if args.fixed_duration:
+#         event_window_iterator = FixedDurationEventReader(path_to_events,
+#                                                          duration_ms=args.window_duration,
+#                                                          start_index=start_index)
+#     else:
+#         event_window_iterator = FixedSizeEventReader(path_to_events, num_events=N, start_index=start_index)
 
+   
+    transform = transforms.Compose([transforms.Denoise(time_filter=10000),
+                                transforms.MaskHotPixel(coordinates=[(205,198),(206,198),(206,197),(19,294),(19,295)]),
+                                #transforms.ToVoxelGrid(num_bins = 10),
+                               ])
+
+    dataset = tonic.datasets.NavGesture(save_to='./data', walk_subset=True, download=False, transform=transform)
+    dataloader = tonic.datasets.DataLoader(dataset, shuffle=True)
+    
+    print("Number of events N: {}".format(N))
+    events, target = next(iter(dataloader))
+    overhang = events.shape[1] % N
+    event_windows = events[:,:-overhang,:].reshape(-1, N, 4)
+#     ipdb.set_trace()
+    
     with Timer('Processing entire dataset'):
-        for event_window in event_window_iterator:
+        for event_window in event_windows:
 
             last_timestamp = event_window[-1, 0]
 

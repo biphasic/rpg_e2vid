@@ -497,7 +497,7 @@ def events_to_voxel_grid_pytorch(events, num_bins, width, height, device):
 
     with torch.no_grad():
 
-        events_torch = torch.from_numpy(events)
+        events_torch = events # torch.from_numpy(events)
         with DeviceTimer('Events -> Device (voxel grid)'):
             events_torch = events_torch.to(device)
 
