@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument('--skipevents', default=0, type=int)
     parser.add_argument('--suboffset', default=0, type=int)
     parser.add_argument('--compute_voxel_grid_on_cpu', dest='compute_voxel_grid_on_cpu', action='store_true')
-    parser.set_defaults(compute_voxel_grid_on_cpu=False)
+    parser.set_defaults(compute_voxel_grid_on_cpu=True)
 
     set_inference_options(parser)
 
@@ -94,16 +94,22 @@ if __name__ == "__main__":
     transform = transforms.Compose([transforms.Denoise(time_filter=10000),
                                 transforms.MaskHotPixel(coordinates=[(205,198),(206,198),(206,197),(19,294),(19,295)]),
                                 #transforms.ToVoxelGrid(num_bins = 10),
+                                #transforms.ToTensor(),
                                ])
 
     dataset = tonic.datasets.NavGesture(save_to='./data', walk_subset=True, download=False, transform=transform)
-    dataloader = tonic.datasets.DataLoader(dataset, shuffle=True)
-    
-    print("Number of events N: {}".format(N))
-    events, target = next(iter(dataloader))
-    overhang = events.shape[1] % N
-    event_windows = events[:,:-overhang,:].reshape(-1, N, 4)
+    #dataloader = tonic.datasets.DataLoader(dataset, shuffle=True)
+    #events, target = next(iter(dataloader))
+    events, target = dataset[200]
 #     ipdb.set_trace()
+    
+    N = N // 2
+    N = N // 2
+    N = N // 2
+    print("Number of events N: {}".format(N))
+    overhang = events.shape[0] % N
+    event_windows = events[:-overhang,:].reshape(-1, N, 4)
+
     
     with Timer('Processing entire dataset'):
         for event_window in event_windows:
